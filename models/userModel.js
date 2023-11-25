@@ -1,5 +1,7 @@
+// Importing Mongoose for schema definition
 const mongoose = require("mongoose");
 
+// Defining the user schema using Mongoose
 const userSchema = mongoose.Schema({
     username: {
         type: String,
@@ -16,7 +18,8 @@ const userSchema = mongoose.Schema({
         required: [true, "Please enter the password"],
     },
 }, {
-    timestamps: true,
+    timestamps: true, // Automatically adds "createdAt" and "updatedAt" fields to the document
 });
 
+// Creating and exporting the User model based on the schema
 module.exports = mongoose.model('User', userSchema);

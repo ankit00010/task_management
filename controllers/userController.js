@@ -1,104 +1,86 @@
+// Importing necessary modules and models
 const asyncHandler = require('express-async-handler');
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-//@desc Register a user
-//@route POST /api/users/register
-//@access PUBLIC
-
+// Async function to handle user registration
 const userRegister = asyncHandler(async (req, res) => {
+    const { username, email, password } = req.body;  // Destructuring
 
-    const { username, email, password } = req.body;  // destructuring
-
+    // Validating mandatory fields
     if (!username || !email || !password) {
         res.status(400);
-        throw new Error("All fields are mandatory");      // null values validation
+        throw new Error("All fields are mandatory");
     }
 
+    // Checking if a user with the given email already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-        if (userExists.email === email) {
-            res.status(400);
-            throw new Error("Email already exists");     //Username already exists???
-        } else {
-            res.status(400);
-            throw new Error("User with the given email already exists"); //email exists???
-        }
+        res.status(400);
+        throw new Error("Email already exists");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);  //hashing the password
+    // Hashing the password before storing in the database
+    const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Creating a new user in the database
     const newUser = await User.create({
         username,
         email,
         password: hashedPassword,
     });
 
+    // Responding with the registered user details
     if (newUser) {
         res.status(201).json({
-            message: "User registered Successfully",
-            success: "true",
+            message: "User registered successfully",
+            success: true,
             user: newUser,
-        })
-    }
-    else {
+        });
+    } else {
         res.status(400);
         throw new Error("User data is not valid");
     }
 });
 
-
-//@desc Login a user
-//@route POST /api/users/login
-//@access PUBLIC
+// Async function to handle user login
 const userLogin = asyncHandler(async (req, res) => {
-
     const { email, password } = req.body;
 
+    // Validating mandatory fields
     if (!email || !password) {
         res.status(400);
         throw new Error("All fields are required");
-
     }
 
-
-
+    // Finding the user by email
     const user = await User.findOne({ email });
 
-    //comparing the password and hashedpassword 
+    // Comparing the provided password with the hashed password in the database
     if (user && (await bcrypt.compare(password, user.password))) {
-        const accesToken = jwt.sign({
-            user: {                         //payload 
+        // Creating an access token using JWT
+        const accessToken = jwt.sign({
+            user: {
                 email: user.email,
                 id: user.id,
-            }
+            },
         },
-            process.env.ACCESS_TOKEN_SECRET, //acces token
-            { expiresIn: "15m" }        //session timeout
-
+            process.env.ACCESS_TOKEN_SECRET, // Access token secret
+            { expiresIn: "15m" }  // Session timeout
         );
-        res.status(200).json({ accesToken });
-
-    }
-    else {
+        // Responding with the access token
+        res.status(200).json({ accessToken });
+    } else {
         res.status(401);
-        throw new Error("email or password is not valid");
+        throw new Error("Email or password is not valid");
     }
-
-    res.json({
-        message: "Login the user"
-    })
 });
 
-//@desc Current user info
-//@route GET /api/users/current
-//@access PUBLIC
-
+// Async function to get current user information
 const getUser = asyncHandler(async (req, res) => {
-    res.json(
-        req.user
-    );
+    res.json(req.user);
 });
 
+// Exporting the functions for use in other parts of the application
 module.exports = { userLogin, userRegister, getUser };
